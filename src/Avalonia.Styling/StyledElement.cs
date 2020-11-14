@@ -302,24 +302,44 @@ namespace Avalonia
         /// <inheritdoc/>
         IStyleHost? IStyleHost.StylingParent => (IStyleHost)InheritanceParent;
 
-        /// <inheritdoc/>
-        public virtual void BeginInit()
+        /// <summary>
+        /// Starts the initialization process for this object.
+        /// </summary>
+        /// <remarks>
+        /// You can call this method on individual elements if you are adjusting them in ways that
+        /// do not yet expose or connect the element to any element tree. For instance, you might
+        /// have created a new Control, but have not yet attached it to any logical tree. The
+        /// XAML engine usually calls <see cref="BeginInit"/> and <see cref="EndInit"/> automatically
+        /// when initializing a tree.
+        /// 
+        /// When overriding be sure to call the base class implementation.
+        /// </remarks>
+        public override void BeginInit()
         {
+            base.BeginInit();
             ++_initCount;
         }
 
         /// <inheritdoc/>
-        public virtual void EndInit()
+        public override void EndInit()
         {
             if (_initCount == 0)
             {
-                throw new InvalidOperationException("BeginInit was not called.");
+                throw new InvalidOperationException("Unmatched BeginInit/EndInit calls.");
             }
 
-            if (--_initCount == 0 && _logicalRoot != null)
+            var isInitialized = --_initCount == 0 && _logicalRoot != null;
+
+            if (isInitialized)
             {
                 ApplyStyling();
-                InitializeIfNeeded();
+            }
+
+            base.EndInit();
+
+            if (isInitialized)
+            {
+                RaiseInitializedIfNeeded();
             }
         }
 
@@ -346,7 +366,7 @@ namespace Avalonia
         /// </summary>
         protected virtual void InvalidateStyles() => DetachStyles();
 
-        protected void InitializeIfNeeded()
+        protected void RaiseInitializedIfNeeded()
         {
             if (_initCount == 0 && !IsInitialized)
             {

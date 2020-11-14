@@ -196,9 +196,9 @@ namespace Avalonia.Base.UnitTests
             var source2 = new Source("2");
             var source3 = new Source("3");
 
-            target.AddBinding(source1, BindingPriority.LocalValue).Start();
-            target.AddBinding(source2, BindingPriority.Style).Start();
-            target.AddBinding(source3, BindingPriority.Style).Start();
+            target.AddBinding(source1, BindingPriority.LocalValue).EnsureStarted();
+            target.AddBinding(source2, BindingPriority.Style).EnsureStarted();
+            target.AddBinding(source3, BindingPriority.Style).EnsureStarted();
             source3.OnCompleted();
 
             var result = target.Entries
@@ -219,9 +219,9 @@ namespace Avalonia.Base.UnitTests
             var source2 = new Source("2");
             var source3 = new Source("3");
 
-            target.AddBinding(source1, BindingPriority.LocalValue).Start();
-            target.AddBinding(source2, BindingPriority.Style).Start();
-            target.AddBinding(source3, BindingPriority.Style).Start();
+            target.AddBinding(source1, BindingPriority.LocalValue).EnsureStarted();
+            target.AddBinding(source2, BindingPriority.Style).EnsureStarted();
+            target.AddBinding(source3, BindingPriority.Style).EnsureStarted();
 
             Assert.Equal("1", target.GetValue().Value);
         }
@@ -232,7 +232,7 @@ namespace Avalonia.Base.UnitTests
             var target = new PriorityValue<string>(Owner, TestProperty, NullSink);
             var source1 = new Source("1");
 
-            target.AddBinding(source1, BindingPriority.LocalValue).Start();
+            target.AddBinding(source1, BindingPriority.LocalValue).EnsureStarted();
             target.SetValue("2", BindingPriority.LocalValue);
 
             Assert.Equal("2", target.GetValue().Value);
@@ -244,7 +244,7 @@ namespace Avalonia.Base.UnitTests
             var target = new PriorityValue<string>(Owner, TestProperty, NullSink);
             var source1 = new Source("1");
 
-            target.AddBinding(source1, BindingPriority.Style).Start();
+            target.AddBinding(source1, BindingPriority.Style).EnsureStarted();
             target.SetValue("2", BindingPriority.LocalValue);
 
             Assert.Equal("2", target.GetValue().Value);
@@ -256,7 +256,7 @@ namespace Avalonia.Base.UnitTests
             var target = new PriorityValue<string>(Owner, TestProperty, NullSink);
             var source1 = new Source("1");
 
-            target.AddBinding(source1, BindingPriority.Animation).Start();
+            target.AddBinding(source1, BindingPriority.Animation).EnsureStarted();
             target.SetValue("2", BindingPriority.LocalValue);
 
             Assert.Equal("1", target.GetValue().Value);
@@ -270,9 +270,9 @@ namespace Avalonia.Base.UnitTests
             var source2 = new Source("2");
             var source3 = new Source("3");
 
-            target.AddBinding(source1, BindingPriority.LocalValue).Start();
-            target.AddBinding(source2, BindingPriority.Style).Start();
-            target.AddBinding(source3, BindingPriority.Animation).Start();
+            target.AddBinding(source1, BindingPriority.LocalValue).EnsureStarted();
+            target.AddBinding(source2, BindingPriority.Style).EnsureStarted();
+            target.AddBinding(source3, BindingPriority.Animation).EnsureStarted();
 
             Assert.Equal("3", target.GetValue().Value);
             Assert.Equal("1", target.GetValue(BindingPriority.LocalValue).Value);
@@ -286,9 +286,9 @@ namespace Avalonia.Base.UnitTests
             var source2 = new Source("2");
             var source3 = new Source("3");
 
-            target.AddBinding(source1, BindingPriority.Animation).Start();
-            target.AddBinding(source2, BindingPriority.Style).Start();
-            target.AddBinding(source3, BindingPriority.Style).Start();
+            target.AddBinding(source1, BindingPriority.Animation).EnsureStarted();
+            target.AddBinding(source2, BindingPriority.Style).EnsureStarted();
+            target.AddBinding(source3, BindingPriority.Style).EnsureStarted();
 
             Assert.Equal("1", target.GetValue().Value);
             Assert.Equal("3", target.GetValue(BindingPriority.LocalValue).Value);

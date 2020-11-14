@@ -38,5 +38,6 @@ namespace Avalonia.PropertyStore
 
         public void Dispose() => _sink.Completed(Property, this, _value);
         public void Reparent(IValueSink sink) => _sink = sink;
+        public void EnsureStarted() { }
     }
 }

@@ -26,6 +26,7 @@ namespace Avalonia.PropertyStore
         private readonly Func<IAvaloniaObject, T, T>? _coerceValue;
         private Optional<T> _localValue;
         private Optional<T> _value;
+        private bool _isCalculatingValue;
 
         public PriorityValue(
             IAvaloniaObject owner,
@@ -137,7 +138,8 @@ namespace Avalonia.PropertyStore
             return binding;
         }
 
-        public void CoerceValue() => UpdateEffectiveValue(null);
+        public void UpdateEffectiveValue() => UpdateEffectiveValue(null);
+        public void EnsureStarted() => UpdateEffectiveValue(null);
 
         void IValueSink.ValueChanged<TValue>(AvaloniaPropertyChangedEventArgs<TValue> change)
         {
@@ -146,7 +148,7 @@ namespace Avalonia.PropertyStore
                 _localValue = default;
             }
 
-            if (change is AvaloniaPropertyChangedEventArgs<T> c)
+            if (!_isCalculatingValue && change is AvaloniaPropertyChangedEventArgs<T> c)
             {
                 UpdateEffectiveValue(c);
             }
@@ -190,39 +192,50 @@ namespace Avalonia.PropertyStore
         {
             var reachedLocalValues = false;
 
-            for (var i = _entries.Count - 1; i >= 0; --i)
-            {
-                var entry = _entries[i];
+            _isCalculatingValue = true;
 
-                if (entry.Priority < maxPriority)
+            try
+            {
+                for (var i = _entries.Count - 1; i >= 0; --i)
                 {
-                    continue;
+                    var entry = _entries[i];
+
+                    if (entry.Priority < maxPriority)
+                    {
+                        continue;
+                    }
+
+                    entry.EnsureStarted();
+
+                    if (!reachedLocalValues &&
+                        entry.Priority >= BindingPriority.LocalValue &&
+                        maxPriority <= BindingPriority.LocalValue &&
+                        _localValue.HasValue)
+                    {
+                        return (_localValue, BindingPriority.LocalValue);
+                    }
+
+                    var entryValue = entry.GetValue();
+
+                    if (entryValue.HasValue)
+                    {
+                        return (entryValue, entry.Priority);
+                    }
                 }
 
                 if (!reachedLocalValues &&
-                    entry.Priority >= BindingPriority.LocalValue &&
                     maxPriority <= BindingPriority.LocalValue &&
                     _localValue.HasValue)
                 {
                     return (_localValue, BindingPriority.LocalValue);
                 }
 
-                var entryValue = entry.GetValue();
-
-                if (entryValue.HasValue)
-                {
-                    return (entryValue, entry.Priority);
-                }
+                return (default, BindingPriority.Unset);
             }
-
-            if (!reachedLocalValues &&
-                maxPriority <= BindingPriority.LocalValue &&
-                _localValue.HasValue)
+            finally
             {
-                return (_localValue, BindingPriority.LocalValue);
+                _isCalculatingValue = false;
             }
-
-            return (default, BindingPriority.Unset);
         }
 
         private void UpdateEffectiveValue(AvaloniaPropertyChangedEventArgs<T>? change)

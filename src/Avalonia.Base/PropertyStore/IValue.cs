@@ -10,6 +10,7 @@ namespace Avalonia.PropertyStore
     internal interface IValue
     {
         Optional<object> GetValue();
+        void EnsureStarted();
         BindingPriority Priority { get; }
     }
 

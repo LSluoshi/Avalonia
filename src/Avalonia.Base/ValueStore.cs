@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using Avalonia.Data;
 using Avalonia.PropertyStore;
 using Avalonia.Utilities;
@@ -21,16 +22,34 @@ namespace Avalonia
     /// - For a single binding it will be an instance of <see cref="BindingEntry{T}"/>
     /// - For all other cases it will be an instance of <see cref="PriorityValue{T}"/>
     /// </remarks>
-    internal class ValueStore : IValueSink
+    internal class ValueStore : IValueSink, ISupportInitialize
     {
         private readonly AvaloniaObject _owner;
         private readonly IValueSink _sink;
         private readonly AvaloniaPropertyValueStore<IValue> _values;
+        private int _initCount;
 
-        public ValueStore(AvaloniaObject owner)
+        public ValueStore(AvaloniaObject owner, int initCount)
         {
             _sink = _owner = owner;
+            _initCount = initCount;
             _values = new AvaloniaPropertyValueStore<IValue>();
+        }
+
+        public void BeginInit() => ++_initCount;
+
+        public void EndInit()
+        {
+            if (_initCount <= 0)
+                throw new InvalidOperationException("EndInit was called without matching BeginInit call.");
+
+            if (--_initCount == 0)
+            {
+                for (var i = 0; i < _values.Count; ++i)
+                {
+                    _values[i].EnsureStarted();
+                }
+            }
         }
 
         public bool IsAnimating(AvaloniaProperty property)
@@ -129,14 +148,16 @@ namespace Avalonia
                 var entry = new PriorityValue<T>(_owner, property, this);
                 var binding = entry.AddBinding(source, priority);
                 _values.AddValue(property, entry);
-                binding.Start();
+                if (_initCount == 0)
+                    binding.EnsureStarted();
                 return binding;
             }
             else
             {
                 var entry = new BindingEntry<T>(_owner, property, source, priority, this);
                 _values.AddValue(property, entry);
-                entry.Start();
+                if (_initCount == 0)
+                    entry.EnsureStarted();
                 return entry;
             }
         }
@@ -176,7 +197,7 @@ namespace Avalonia
             {
                 if (slot is PriorityValue<T> p)
                 {
-                    p.CoerceValue();
+                    p.UpdateEffectiveValue();
                 }
             }
         }
@@ -289,7 +310,8 @@ namespace Avalonia
 
             var binding = priorityValue.AddBinding(source, priority);
             _values.SetValue(property, priorityValue);
-            binding.Start();
+            if (_initCount == 0)
+                priorityValue.UpdateEffectiveValue();
             return binding;
         }
     }

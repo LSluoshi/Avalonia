@@ -24,5 +24,6 @@ namespace Avalonia.PropertyStore
         }
 
         public void SetValue(T value) => _value = value;
+        public void EnsureStarted() { }
     }
 }

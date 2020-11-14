@@ -22,6 +22,7 @@ namespace Avalonia.PropertyStore
         private readonly IAvaloniaObject _owner;
         private IValueSink _sink;
         private IDisposable? _subscription;
+        private bool _isSubscribed;
         private Optional<T> _value;
 
         public BindingEntry(
@@ -52,6 +53,7 @@ namespace Avalonia.PropertyStore
         {
             _subscription?.Dispose();
             _subscription = null;
+            _isSubscribed = false;
             _sink.Completed(Property, this, _value);
         }
 
@@ -79,9 +81,15 @@ namespace Avalonia.PropertyStore
             }
         }
 
-        public void Start()
+        public void EnsureStarted()
         {
-            _subscription = Source.Subscribe(this);
+            // We can't use _subscription to check whether we're subscribed because it won't be set
+            // until Subscribe has finished, which will be too late to prevent reentrancy.
+            if (!_isSubscribed)
+            {
+                _isSubscribed = true;
+                _subscription = Source.Subscribe(this);
+            }
         }
 
         public void Reparent(IValueSink sink) => _sink = sink;

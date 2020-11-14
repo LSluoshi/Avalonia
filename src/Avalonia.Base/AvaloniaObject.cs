@@ -15,7 +15,11 @@ namespace Avalonia
     /// <remarks>
     /// This class is analogous to DependencyObject in WPF.
     /// </remarks>
-    public class AvaloniaObject : IAvaloniaObject, IAvaloniaObjectDebug, INotifyPropertyChanged, IValueSink
+    public class AvaloniaObject : IAvaloniaObject,
+        IAvaloniaObjectDebug,
+        INotifyPropertyChanged,
+        ISupportInitialize,
+        IValueSink
     {
         private IAvaloniaObject _inheritanceParent;
         private List<IDisposable> _directBindings;
@@ -23,7 +27,7 @@ namespace Avalonia
         private EventHandler<AvaloniaPropertyChangedEventArgs> _propertyChanged;
         private List<IAvaloniaObject> _inheritanceChildren;
         private ValueStore _values;
-        private ValueStore Values => _values ?? (_values = new ValueStore(this));
+        private int _initCount;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AvaloniaObject"/> class.
@@ -115,6 +119,46 @@ namespace Avalonia
         {
             get { return new IndexerBinding(this, binding.Property, binding.Mode); }
             set { this.Bind(binding.Property, value); }
+        }
+
+        /// <summary>
+        /// Gets the object's value store. For unit testing only.
+        /// </summary>
+        internal ValueStore Values => _values ?? (_values = new ValueStore(this, _initCount));
+
+        /// <summary>
+        /// Starts the initialization process for this object.
+        /// </summary>
+        /// <remarks>
+        /// As implemented in <see cref="AvaloniaObject"/> this method pauses updates to the value
+        /// store until initialization is finished in order to not evaluate inactive bindings. The
+        /// XAML engine usually calls <see cref="BeginInit"/> and <see cref="EndInit"/> automatically
+        /// when initializing a tree.
+        /// 
+        /// When overriding be sure to call the base class implementation.
+        /// </remarks>
+        public virtual void BeginInit()
+        {
+            ++_initCount;
+            _values?.BeginInit();
+        }
+
+        /// <summary>
+        /// Indicates that the initialization process started by a call to <see cref="BeginInit"/>
+        /// has finished.
+        /// </summary>
+        /// <remarks>
+        /// When overriding be sure to call the base class implementation.
+        /// </remarks>
+        public virtual void EndInit()
+        {
+            if (_initCount == 0)
+            {
+                throw new InvalidOperationException("Unmatched BeginInit/EndInit calls.");
+            }
+
+            --_initCount;
+            _values?.EndInit();
         }
 
         public bool CheckAccess() => Dispatcher.UIThread.CheckAccess();
